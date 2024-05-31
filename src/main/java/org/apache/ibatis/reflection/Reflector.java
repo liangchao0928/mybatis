@@ -1,17 +1,17 @@
 /**
- *    Copyright 2009-2020 the original author or authors.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Copyright 2009-2020 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.ibatis.reflection;
 
@@ -49,25 +49,38 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
  */
 public class Reflector {
 
+  //该Reflector对象封装的Class类型
   private final Class<?> type;
+  //可读属性的名称集合
   private final String[] readablePropertyNames;
+  //可写属性的名称集合
   private final String[] writablePropertyNames;
+  //可读、可写属性对应的 getter 方法和 setter 方法集合，key 是属性的名称，value 是一个 Invoker 对象。Invoker 是对 Method 对象的封装。
   private final Map<String, Invoker> setMethods = new HashMap<>();
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  //属性对应的 getter 方法返回值以及 setter 方法的参数值类型，key 是属性名称，value 是方法的返回值类型或参数类型。
   private final Map<String, Class<?>> setTypes = new HashMap<>();
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  //默认构造方法
   private Constructor<?> defaultConstructor;
-
+  //所有属性名称的集合，记录到这个集合中的属性名称都是大写
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
     type = clazz;
+    //通过反射拿到 Class 类的全部构造方法，并进行遍历，过滤得到唯一的无参构造方法来初始化 defaultConstructor 字段
     addDefaultConstructor(clazz);
+    //读取 Class 类中的 getter方法，填充上面介绍的 getMethods 集合和 getTypes 集合
     addGetMethods(clazz);
+    //读取 Class 类中的 setter 方法，填充上面介绍的 setMethods 集合和 setTypes 集合
     addSetMethods(clazz);
+    //读取 Class 中没有 getter/setter 方法的字段，生成对应的 Invoker 对象，填充 getMethods 集合、getTypes 集合以及 setMethods 集合、setTypes 集合
     addFields(clazz);
+    //初始化 readablePropertyNames、writablePropertyNames 集合。
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
+
+    //遍历构造的 readablePropertyNames、writablePropertyNames 集合，将其中的属性名称全部转化成大写并记录到 caseInsensitivePropertyMap 集合中
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }
@@ -83,10 +96,14 @@ public class Reflector {
   }
 
   private void addGetMethods(Class<?> clazz) {
+    // Key 为属性名称，Value 是该属性对应的 getter 方法集合
     Map<String, List<Method>> conflictingGetters = new HashMap<>();
+    //获取当前 Class 类的所有方法的唯一签名（注意一下，这里同时包含继承自父类以及接口的方法），以及每个方法对应的 Method 对象
     Method[] methods = getClassMethods(clazz);
+    //从上一步返回的 Method 数组中查找 getter 方法，将其记录到conflictingGetters集合中
     Arrays.stream(methods).filter(m -> m.getParameterTypes().length == 0 && PropertyNamer.isGetter(m.getName()))
       .forEach(m -> addMethodConflict(conflictingGetters, PropertyNamer.methodToProperty(m.getName()), m));
+    //解决方法签名冲突.处理冲突的核心逻辑其实就是比较 getter 方法的返回值，优先选择返回值为子类的 getter 方法
     resolveGetterConflicts(conflictingGetters);
   }
 
@@ -118,18 +135,20 @@ public class Reflector {
           break;
         }
       }
+      //会为每个getter方法创建对应的 MethodInvoker对象，然后统一保存到getMethods集合中
       addGetMethod(propName, winner, isAmbiguous);
     }
   }
 
   private void addGetMethod(String name, Method method, boolean isAmbiguous) {
     MethodInvoker invoker = isAmbiguous
-        ? new AmbiguousMethodInvoker(method, MessageFormat.format(
-            "Illegal overloaded getter method with ambiguous type for property ''{0}'' in class ''{1}''. This breaks the JavaBeans specification and can cause unpredictable results.",
-            name, method.getDeclaringClass().getName()))
-        : new MethodInvoker(method);
+      ? new AmbiguousMethodInvoker(method, MessageFormat.format(
+      "Illegal overloaded getter method with ambiguous type for property ''{0}'' in class ''{1}''. This breaks the JavaBeans specification and can cause unpredictable results.",
+      name, method.getDeclaringClass().getName()))
+      : new MethodInvoker(method);
     getMethods.put(name, invoker);
     Type returnType = TypeParameterResolver.resolveReturnType(method, type);
+    //会在getTypes集合中维护属性名称与对应getter方法返回值类型的映射
     getTypes.put(name, typeToClass(returnType));
   }
 
@@ -185,9 +204,9 @@ public class Reflector {
       return setter1;
     }
     MethodInvoker invoker = new AmbiguousMethodInvoker(setter1,
-        MessageFormat.format(
-            "Ambiguous setters defined for property ''{0}'' in class ''{1}'' with types ''{2}'' and ''{3}''.",
-            property, setter2.getDeclaringClass().getName(), paramType1.getName(), paramType2.getName()));
+      MessageFormat.format(
+        "Ambiguous setters defined for property ''{0}'' in class ''{1}'' with types ''{2}'' and ''{3}''.",
+        property, setter2.getDeclaringClass().getName(), paramType1.getName(), paramType2.getName()));
     setMethods.put(property, invoker);
     Type[] paramTypes = TypeParameterResolver.resolveParamTypes(setter1, type);
     setTypes.put(property, typeToClass(paramTypes[0]));

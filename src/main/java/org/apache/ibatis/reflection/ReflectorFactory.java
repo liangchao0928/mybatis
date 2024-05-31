@@ -15,6 +15,9 @@
  */
 package org.apache.ibatis.reflection;
 
+/**
+ * 为了提升 Reflector 的初始化速度，MyBatis 提供了 ReflectorFactory 这个工厂接口对 Reflector 对象进行缓存
+ */
 public interface ReflectorFactory {
 
   boolean isClassCacheEnabled();

@@ -28,6 +28,7 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
  * @author Clinton Begin
+ * MetaClass 提供了获取类中属性描述信息的功能，底层依赖前面介绍的 Reflector
  */
 public class MetaClass {
 
@@ -146,6 +147,10 @@ public class MetaClass {
     }
   }
 
+  /**
+   * 先通过 PropertyTokenizer 解析传入的 name 表达式，然后进行递归查询，在递归查询中会依赖 Reflector.hasGetter() 方法,
+   * 查找前文介绍的 getMethods 集合或 setMethods 集合，查找属性对应的 getter/setter 方法
+   */
   public boolean hasGetter(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {

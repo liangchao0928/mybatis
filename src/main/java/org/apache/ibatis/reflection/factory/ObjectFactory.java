@@ -20,7 +20,7 @@ import java.util.Properties;
 
 /**
  * MyBatis uses an ObjectFactory to create all needed new Objects.
- *
+ * ObjectFactory 是 MyBatis 中的反射工厂，其中提供了两个 create() 方法的重载，我们可以通过两个 create() 方法创建指定类型的对象
  * @author Clinton Begin
  */
 public interface ObjectFactory {

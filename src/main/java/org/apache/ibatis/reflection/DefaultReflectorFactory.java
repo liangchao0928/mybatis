@@ -35,6 +35,10 @@ public class DefaultReflectorFactory implements ReflectorFactory {
     this.classCacheEnabled = classCacheEnabled;
   }
 
+  /**
+   * 首先会根据传入的 Class 类查询 reflectorMap 缓存，如果查找到对应的 Reflector 对象，则直接返回；
+   * 否则创建相应的 Reflector 对象，并记录到 reflectorMap 中缓存，等待下次使用。
+   */
   @Override
   public Reflector findForClass(Class<?> type) {
     if (classCacheEnabled) {
